@@ -1,0 +1,44 @@
+name: Clean up environment
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: read
+
+jobs:
+  clean-up-ephemeral-env:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy
+        id: deploy
+        uses: ./.github/action/setup-and-deploy-terraform
+        with:
+          env: "ephemeral-pr${{ github.event.number }}"
+          aws-key: "${{ secrets.TF_USER_KEY }}"
+          aws-secret: "${{ secrets.TF_USER_SECRET }}"
+          delete-env: true
+
+  cleanup-github-env:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get GitHub App token
+        uses: navikt/github-app-token-generator@v1
+        id: get-token
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Delete deployment environment
+        uses: strumwolf/delete-deployment-environment@v2.2.3
+        with:
+          token: ${{ steps.get-token.outputs.token }}
+          environment: "ephemeral-pr${{ github.event.number }}"
+          ref: ${{ github.ref_name }}

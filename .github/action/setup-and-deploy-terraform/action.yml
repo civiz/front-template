@@ -1,0 +1,64 @@
+name: "Set up terraform and deploy site"
+description: "Set up terraform create S3 aws bucket and deploy build on it"
+
+inputs:
+  env:
+    description: "env"
+    required: true
+  aws-key:
+    description: "aws user key"
+    required: true
+  aws-secret:
+    description: "aws user secret"
+    required: true
+  delete-env:
+    description: "remove deployment"
+    required: false
+    default: "false"
+
+outputs:
+  url:
+    description: "Env url"
+    value: ${{ steps.apply.outputs.url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: "${{ inputs.aws-key }}"
+        aws-secret-access-key: "${{ inputs.aws-secret }}"
+        aws-region: eu-west-3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
+
+    - name: Terraform Apply
+      if: ${{ inputs.delete-env == 'false' }}
+      id: apply
+      shell: bash
+      working-directory: terraform
+      run: |
+        terraform init
+        terraform validate
+        terraform workspace new ${{ inputs.env }} || terraform workspace select ${{ inputs.env }}
+        terraform apply \
+          -var bucket="${{github.event.repository.name}}" \
+          -auto-approve
+        echo "url=$(terraform output website_url | jq -r)" >> $GITHUB_OUTPUT
+
+    - name: Terraform Destroy
+      if: ${{ inputs.delete-env == 'true' }}
+      shell: bash
+      working-directory: terraform
+      run: |
+        terraform init
+        terraform workspace new ${{ inputs.env }} || terraform workspace select ${{ inputs.env }}
+        terraform apply \
+          -var bucket="${{github.event.repository.name}}" \
+          -auto-approve \
+          -destroy
+        terraform workspace delete ${{ inputs.env }}

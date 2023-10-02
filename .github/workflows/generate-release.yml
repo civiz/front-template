@@ -1,0 +1,26 @@
+name: Generate release
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.head_ref}}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up pnpm
+        uses: ./.github/action/setup-pnpm
+      - name: Test project
+        uses: ./.github/action/run-test
+        with:
+          codecove_api_key: ${{ secrets.CODECOVE_API_KEY }}
