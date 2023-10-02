@@ -1,0 +1,66 @@
+name: Validate pull request
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.head_ref}}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up pnpm
+        uses: ./.github/action/setup-pnpm
+      - name: Test project
+        uses: ./.github/action/run-test
+        with:
+          codecove_api_key: ${{ secrets.CODECOVE_API_KEY }}
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up pnpm
+        uses: ./.github/action/setup-pnpm
+      - name: Build project
+        run: pnpm run build
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: dist
+
+  deploy:
+    needs:
+      - build
+      - test
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: "ephemeral-pr${{ github.event.pull_request.number }}"
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: build
+          path: dist
+
+      - name: Deploy
+        id: deploy
+        uses: ./.github/action/setup-and-deploy-terraform
+        with:
+          env: "ephemeral-pr${{ github.event.pull_request.number }}"
+          aws-key: "${{ secrets.TF_USER_KEY }}"
+          aws-secret: "${{ secrets.TF_USER_SECRET }}"

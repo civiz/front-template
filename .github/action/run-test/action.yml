@@ -1,0 +1,24 @@
+name: "Run test"
+description: "Run unit testing and export coverage reporte to Codecov"
+
+inputs:
+  codecove_api_key:
+    description: "Codecove api key"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Test project
+      shell: bash
+      run: pnpm run test:unit --coverage
+
+    - name: Upload coverage reports to Codecov
+      shell: bash
+      env:
+        CODECOV_TOKEN: ${{ inputs.codecove_api_key }}
+      run: |
+        pip install codecov-cli
+        codecovcli create-commit
+        codecovcli create-report
+        codecovcli do-upload

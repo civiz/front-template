@@ -1,0 +1,46 @@
+name: Build infrastructure
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["terraform/**/*.tf"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.head_ref}}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  provide-infra:
+    strategy:
+      matrix:
+        env: [prod, qa]
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: ${{ matrix.env }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    name: Provide infra - ${{ matrix.env }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up pnpm
+        uses: ./.github/action/setup-pnpm
+      - name: Build project
+        run: pnpm run build
+
+      - name: Deploy
+        id: deploy
+        uses: ./.github/action/setup-and-deploy-terraform
+        with:
+          env: ${{ matrix.env }}
+          aws-key: "${{ secrets.TF_USER_KEY }}"
+          aws-secret: "${{ secrets.TF_USER_SECRET }}"
+
+      - run: echo '### Environment ${{ matrix.env }} created ${{ steps.deploy.outputs.url }} 🚀'  >> $GITHUB_STEP_SUMMARY
