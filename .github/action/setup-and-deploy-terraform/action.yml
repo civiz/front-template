@@ -59,5 +59,5 @@ runs:
         terraform workspace new ${{ inputs.env }} || terraform workspace select ${{ inputs.env }}
         terraform apply \
           -var bucket="${{github.event.repository.name}}" \
-          -auto-approve
+          -auto-approve \
           -destroy
