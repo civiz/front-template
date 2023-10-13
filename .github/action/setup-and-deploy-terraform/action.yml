@@ -37,7 +37,7 @@ runs:
         terraform_wrapper: false
 
     - name: Terraform Apply
-      if: inputs.delete-env == "false"
+      if: ${{ inputs.delete-env == "false" }}
       id: apply
       shell: bash
       working-directory: terraform
@@ -51,7 +51,7 @@ runs:
         echo "url=$(terraform output website_url | jq -r)" >> $GITHUB_OUTPUT
 
     - name: Terraform Destroy
-      if: inputs.delete-env == "true"
+      if: ${{ inputs.delete-env == "true" }}
       shell: bash
       working-directory: terraform
       run: |
