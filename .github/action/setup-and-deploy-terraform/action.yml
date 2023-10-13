@@ -11,6 +11,10 @@ inputs:
   aws-secret:
     description: "aws user secret"
     required: true
+  delete-env:
+    description: "remove deployment"
+    required: false
+    default: "false"
 
 outputs:
   url:
@@ -33,10 +37,11 @@ runs:
         terraform_wrapper: false
 
     - name: Terraform Apply
+      if: inputs.delete-env == "false"
       id: apply
       shell: bash
+      working-directory: terraform
       run: |
-        cd terraform/
         terraform init
         terraform validate
         terraform workspace new ${{ inputs.env }} || terraform workspace select ${{ inputs.env }}
@@ -44,3 +49,15 @@ runs:
           -var bucket="${{github.event.repository.name}}" \
           -auto-approve
         echo "url=$(terraform output website_url | jq -r)" >> $GITHUB_OUTPUT
+
+    - name: Terraform Destroy
+      if: inputs.delete-env == "true"
+      shell: bash
+      working-directory: terraform
+      run: |
+        terraform init
+        terraform workspace new ${{ inputs.env }} || terraform workspace select ${{ inputs.env }}
+        terraform apply \
+          -var bucket="${{github.event.repository.name}}" \
+          -auto-approve
+          -destroy

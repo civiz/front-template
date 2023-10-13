@@ -4,10 +4,15 @@ on:
     types:
       - closed
 
+permissions:
+  contents: read
+
 jobs:
-  cleanup:
+  clean-up-ephemeral-env:
     runs-on: ubuntu-latest
-    permissions: write-all
+
+  cleanup-github-env:
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
