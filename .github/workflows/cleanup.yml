@@ -11,6 +11,18 @@ jobs:
   clean-up-ephemeral-env:
     runs-on: ubuntu-latest
 
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy
+        id: deploy
+        uses: ./.github/action/setup-and-deploy-terraform
+        with:
+          env: "ephemeral-pr${{ github.event.number }}"
+          aws-key: "${{ secrets.TF_USER_KEY }}"
+          aws-secret: "${{ secrets.TF_USER_SECRET }}"
+          delete-env: true
+
   cleanup-github-env:
     runs-on: ubuntu-latest
 
