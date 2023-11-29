@@ -61,4 +61,5 @@ runs:
           -var bucket="${{github.event.repository.name}}" \
           -auto-approve \
           -destroy
+        terraform workspace select default
         terraform workspace delete ${{ inputs.env }}
